@@ -14,7 +14,7 @@ async function hashInput(raw: string): Promise<string> {
 }
 // SHA-256("Sirius.2026!") — computed via browser devtools
 // To change: run: crypto.subtle.digest("SHA-256", new TextEncoder().encode("YourNewPass")).then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")))
-const PASS_HASH = "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
+const PASS_HASH = "1b4695a0bbf7cd467c5e08fd760ac82c6c4cc52a5d73992accc384875cc1671d"
 // ↑ This is SHA-256 of "123" as a temporary placeholder.
 // Replace with real hash of your chosen password.
 
