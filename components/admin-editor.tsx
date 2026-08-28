@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { copy, portfolioData, type Lang, type Project } from "@/lib/portfolio-data"
 import R2Uploader from "./R2Uploader"
+import { savePortfolioData } from "@/app/actions"
 
 const KEY = "sirius-portfolio-draft"
 
@@ -31,9 +32,19 @@ export function AdminEditor() {
   const [lockTimer, setLockTimer] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  const R2_DATA_URL = "https://pub-9120ad04596f4681846007d76e7b4dfc.r2.dev/portfolio-data.json"
+
   useEffect(() => {
-    const saved = window.localStorage.getItem(KEY)
-    if (saved) setData(JSON.parse(saved))
+    fetch(`${R2_DATA_URL}?t=${Date.now()}`)
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(cloudData => {
+        setData(cloudData)
+        window.localStorage.setItem(KEY, JSON.stringify(cloudData))
+      })
+      .catch(() => {
+        const saved = window.localStorage.getItem(KEY)
+        if (saved) setData(JSON.parse(saved))
+      })
   }, [])
 
   useEffect(() => {
@@ -109,7 +120,19 @@ export function AdminEditor() {
       }),
     }))
 
-  const save = () => { window.localStorage.setItem(KEY, JSON.stringify(data)); setStatus(copy[lang].saved); window.setTimeout(() => setStatus(""), 2500) }
+  const save = async () => {
+    // Always save locally so it works offline too
+    window.localStorage.setItem(KEY, JSON.stringify(data))
+    setStatus("Saving to cloud…")
+    // Also push to R2 so every device sees the same data
+    const result = await savePortfolioData(data)
+    if (result.success) {
+      setStatus(copy[lang].saved + " ✓ (synced to cloud)")
+    } else {
+      setStatus(copy[lang].saved + " (local only — cloud sync failed)")
+    }
+    window.setTimeout(() => setStatus(""), 3500)
+  }
   const reset = () => { setData(portfolioData); window.localStorage.removeItem(KEY); setStatus(copy[lang].reset) }
   const exportData = () => { const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "sirius-portfolio.json"; a.click(); URL.revokeObjectURL(url) }
 

@@ -34,3 +34,24 @@ export async function getUploadUrl(fileName: string, contentType: string) {
     return { success: false, error: "Failed to generate upload URL" };
   }
 }
+
+// Saves the entire portfolio JSON to R2 as portfolio-data.json
+// so all devices/visitors load the same data
+export async function savePortfolioData(data: unknown) {
+  try {
+    const json = JSON.stringify(data);
+    const command = new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: "portfolio-data.json",
+      Body: json,
+      ContentType: "application/json",
+      // Allow public read so the portfolio page can fetch it
+      ACL: "public-read" as const,
+    });
+    await s3Client.send(command);
+    return { success: true };
+  } catch (error) {
+    console.error("Error saving portfolio data to R2:", error);
+    return { success: false, error: "Failed to save data" };
+  }
+}

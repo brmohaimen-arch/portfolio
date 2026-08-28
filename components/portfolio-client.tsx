@@ -15,9 +15,26 @@ export function PortfolioClient() {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const prevActive = useRef(active)
 
+  const R2_DATA_URL = "https://pub-9120ad04596f4681846007d76e7b4dfc.r2.dev/portfolio-data.json"
+
   useEffect(() => {
-    const saved = window.localStorage.getItem(KEY)
-    if (saved) setData(JSON.parse(saved))
+    // Try to load from R2 first (cloud — same on all devices)
+    // Add cache-busting so we always get the latest saved version
+    fetch(`${R2_DATA_URL}?t=${Date.now()}`)
+      .then(res => {
+        if (!res.ok) throw new Error("No cloud data yet")
+        return res.json()
+      })
+      .then(cloudData => {
+        setData(cloudData)
+        // Keep localStorage in sync for offline use
+        window.localStorage.setItem(KEY, JSON.stringify(cloudData))
+      })
+      .catch(() => {
+        // Fall back to localStorage if R2 has no data yet
+        const saved = window.localStorage.getItem(KEY)
+        if (saved) setData(JSON.parse(saved))
+      })
   }, [])
 
   // Lock body scroll when details panel is open
