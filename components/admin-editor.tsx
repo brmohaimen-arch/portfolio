@@ -37,13 +37,9 @@ export function AdminEditor() {
   useEffect(() => {
     fetch(`${R2_DATA_URL}?t=${Date.now()}`)
       .then(res => res.ok ? res.json() : Promise.reject())
-      .then(cloudData => {
-        setData(cloudData)
-        window.localStorage.setItem(KEY, JSON.stringify(cloudData))
-      })
+      .then(cloudData => setData(cloudData))
       .catch(() => {
-        const saved = window.localStorage.getItem(KEY)
-        if (saved) setData(JSON.parse(saved))
+        // R2 has no data yet — start with the default template
       })
   }, [])
 
@@ -121,20 +117,15 @@ export function AdminEditor() {
     }))
 
   const save = async () => {
-    // Always save locally so it works offline too
-    window.localStorage.setItem(KEY, JSON.stringify(data))
-    setStatus("Saving to cloud…")
-    // Also push to R2 so every device sees the same data
+    setStatus(lang === "en" ? "Publishing to cloud…" : "جارٍ النشر…")
     const result = await savePortfolioData(data)
     if (result.success) {
-      setStatus(copy[lang].saved + " ✓ (synced to cloud)")
+      setStatus(lang === "en" ? "✓ Published — visible on all devices" : "✓ تم النشر — مرئي على جميع الأجهزة")
     } else {
-      setStatus(copy[lang].saved + " (local only — cloud sync failed)")
+      setStatus(lang === "en" ? "✗ Publish failed — check connection" : "✗ فشل النشر — تحقق من الاتصال")
     }
-    window.setTimeout(() => setStatus(""), 3500)
+    window.setTimeout(() => setStatus(""), 4000)
   }
-  const reset = () => { setData(portfolioData); window.localStorage.removeItem(KEY); setStatus(copy[lang].reset) }
-  const exportData = () => { const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "sirius-portfolio.json"; a.click(); URL.revokeObjectURL(url) }
 
   const addProject = () => {
     const newId = `project-${Date.now()}`
@@ -174,7 +165,9 @@ export function AdminEditor() {
           <div className="flex items-center gap-2">
             {status && <span className="admin-status-badge">{status}</span>}
             <button onClick={() => setLang(lang === "en" ? "ar" : "en")} className="rounded-full border border-border px-3 py-1.5 font-mono text-xs hover:border-accent hover:text-accent transition-colors">{lang === "en" ? "عربي" : "EN"}</button>
-            <button onClick={save} className="rounded-full bg-accent px-4 py-1.5 font-mono text-xs font-medium text-accent-foreground hover:opacity-90 transition-opacity">{copy[lang].save}</button>
+            <button onClick={save} className="rounded-full bg-accent px-4 py-1.5 font-mono text-xs font-medium text-accent-foreground hover:opacity-90 transition-opacity">
+              {lang === "en" ? "Publish ↑" : "نشر ↑"}
+            </button>
             <button onClick={() => setAuthenticated(false)} title="Sign out" className="grid place-items-center w-8 h-8 rounded-full border border-border text-muted-foreground hover:border-foreground hover:text-foreground transition-colors text-xs">✕</button>
           </div>
         </div>
@@ -186,12 +179,10 @@ export function AdminEditor() {
             <p className="eyebrow mb-4">SIRIUS / {copy[lang].cms}</p>
             <h1 className="font-mono text-4xl font-bold tracking-[-0.08em] md:text-6xl">{copy[lang].admin}</h1>
             <p className="mt-4 max-w-lg text-muted-foreground leading-relaxed">
-              {lang === "en" ? "Manage projects, update content, control what the world sees. Saved locally, exportable anytime." : "أدر المشاريع، حدّث المحتوى، تحكم فيما يراه العالم. يُحفظ محلياً ويُصدَّر في أي وقت."}
+              {lang === "en"
+                ? "Manage projects, update content, upload media. All changes publish directly to Cloudflare and are instantly visible on every device."
+                : "أدر المشاريع، حدّث المحتوى، ارفع الوسائط. تُنشر جميع التغييرات مباشرة إلى Cloudflare وتظهر فوراً على جميع الأجهزة."}
             </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={exportData} className="rounded-full border border-border px-4 py-2 text-sm hover:border-accent hover:text-accent transition-colors">{copy[lang].export}</button>
-            <button onClick={reset} className="rounded-full border border-border px-4 py-2 text-sm text-muted-foreground hover:border-foreground transition-colors">{copy[lang].reset}</button>
           </div>
         </div>
 
@@ -314,7 +305,9 @@ export function AdminEditor() {
         </div>
 
         <div className="mt-12 flex justify-end border-t border-border pt-8">
-          <button onClick={save} className="rounded-full bg-accent px-8 py-3 font-mono text-sm font-medium text-accent-foreground hover:opacity-90 transition-opacity">{copy[lang].save} ✓</button>
+          <button onClick={save} className="rounded-full bg-accent px-8 py-3 font-mono text-sm font-medium text-accent-foreground hover:opacity-90 transition-opacity">
+            {lang === "en" ? "Publish to Cloudflare ↑" : "نشر إلى Cloudflare ↑"}
+          </button>
         </div>
       </div>
     </main>
