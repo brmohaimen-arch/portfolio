@@ -186,6 +186,39 @@ export function AdminEditor() {
           </div>
         </div>
 
+        <section className="mb-12 admin-project-card grid gap-6 border border-border bg-muted p-6 md:p-8">
+          <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-accent">{lang === "en" ? "Contact Settings" : "إعدادات التواصل"}</p>
+          <div className="grid gap-5 sm:grid-cols-3">
+            <label className="admin-field">
+              <span className="admin-label">{lang === "en" ? "Contact Email" : "البريد الإلكتروني"}</span>
+              <input 
+                value={data.contact?.email || ""} 
+                onChange={(e) => setData(cur => ({ ...cur, contact: { ...cur.contact, email: e.target.value } as any }))} 
+                className="admin-input" 
+                placeholder="hello@..."
+              />
+            </label>
+            <label className="admin-field">
+              <span className="admin-label">{lang === "en" ? "Instagram URL" : "رابط انستجرام"}</span>
+              <input 
+                value={data.contact?.instagram || ""} 
+                onChange={(e) => setData(cur => ({ ...cur, contact: { ...cur.contact, instagram: e.target.value } as any }))} 
+                className="admin-input" 
+                placeholder="https://instagram.com/..."
+              />
+            </label>
+            <label className="admin-field">
+              <span className="admin-label">{lang === "en" ? "Facebook URL" : "رابط فيسبوك"}</span>
+              <input 
+                value={data.contact?.facebook || ""} 
+                onChange={(e) => setData(cur => ({ ...cur, contact: { ...cur.contact, facebook: e.target.value } as any }))} 
+                className="admin-input" 
+                placeholder="https://facebook.com/..."
+              />
+            </label>
+          </div>
+        </section>
+
         <div className="flex items-center justify-between mb-8">
           <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">{lang === "en" ? `${data.projects.length} Projects` : `${data.projects.length} مشروع`}</p>
           <button onClick={addProject} className="flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:border-accent hover:text-accent transition-colors">
@@ -205,22 +238,30 @@ export function AdminEditor() {
                     }
                     const cls = ratioClass[project.mediaRatio || "16:9"] || "aspect-video"
                     const fit = project.mediaRatio === "cover" ? "object-cover" : "object-contain"
-                    return (
-                      <>
-                        <div className={`${cls} w-full overflow-hidden border border-border bg-background relative`}>
-                          {project.image
-                            ? <img src={project.image} alt="Preview" className={`absolute inset-0 h-full w-full ${fit} transition-all duration-500 hover:scale-105`} />
-                            : <div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-muted-foreground">NO IMAGE</div>
-                          }
-                        </div>
-                        <div className={`${cls} w-full overflow-hidden border border-border bg-background relative`}>
-                          {project.video
-                            ? <video src={project.video} muted loop autoPlay playsInline className={`absolute inset-0 h-full w-full ${fit} transition-all duration-500 hover:scale-105`} />
-                            : <div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-muted-foreground">NO VIDEO</div>
-                          }
-                        </div>
-                      </>
-                    )
+                    
+                    let mediaItems: { url: string; type: "image" | "video" }[] = []
+                    if (project.media && project.media.length > 0) {
+                      mediaItems = project.media
+                    } else {
+                      if (project.image) mediaItems.push({ url: project.image, type: "image" })
+                      if (project.video) mediaItems.push({ url: project.video, type: "video" })
+                    }
+
+                    if (mediaItems.length === 0) {
+                       return <div className={`${cls} w-full flex items-center justify-center border border-border bg-background font-mono text-[10px] text-muted-foreground`}>NO MEDIA</div>
+                    }
+
+                    return mediaItems.map((item, i) => (
+                      <div key={i} className={`${cls} w-full flex items-center justify-center overflow-hidden border border-border bg-background relative`}>
+                        {item.url ? (
+                          item.type === "image"
+                            ? <img src={item.url} alt="Preview" className={`absolute inset-0 h-full w-full ${fit} transition-all duration-500 hover:scale-105`} />
+                            : <video src={item.url} muted loop autoPlay playsInline className={`absolute inset-0 h-full w-full ${fit} transition-all duration-500 hover:scale-105`} />
+                        ) : (
+                          <span className="font-mono text-[10px] text-muted-foreground uppercase">NO {item.type} URL</span>
+                        )}
+                      </div>
+                    ))
                   })()}
                 </div>
                 <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-accent">{project.index} · {project.year}</p>
@@ -276,21 +317,79 @@ export function AdminEditor() {
                     </div>
                   </div>
                 </div>
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div className="admin-field">
-                    <span className="admin-label">{lang === "en" ? "Image URL" : "رابط الصورة"}</span>
-                    <div className="flex flex-col gap-3">
-                      <input value={project.image} onChange={(e) => setData((cur) => ({ ...cur, projects: cur.projects.map(p => p.id === project.id ? { ...p, image: e.target.value } : p) }))} className="admin-input font-mono text-xs" placeholder="https://..." />
-                      <R2Uploader onUploadSuccess={(url) => setData((cur) => ({ ...cur, projects: cur.projects.map(p => p.id === project.id ? { ...p, image: url } : p) }))} />
-                    </div>
-                  </div>
-                  <div className="admin-field">
-                    <span className="admin-label">{lang === "en" ? "Video URL" : "رابط الفيديو"}</span>
-                    <div className="flex flex-col gap-3">
-                      <input value={project.video || ""} onChange={(e) => setData((cur) => ({ ...cur, projects: cur.projects.map(p => p.id === project.id ? { ...p, video: e.target.value } : p) }))} className="admin-input font-mono text-xs" placeholder="https://..." />
-                      <R2Uploader onUploadSuccess={(url) => setData((cur) => ({ ...cur, projects: cur.projects.map(p => p.id === project.id ? { ...p, video: url } : p) }))} />
-                    </div>
-                  </div>
+                <div className="admin-field mt-2">
+                  <span className="admin-label">{lang === "en" ? "Media Items" : "الوسائط"}</span>
+                  {(() => {
+                    let mediaItems: { url: string; type: "image" | "video" }[] = []
+                    if (project.media) {
+                      mediaItems = project.media
+                    } else {
+                      if (project.image) mediaItems.push({ url: project.image, type: "image" })
+                      if (project.video) mediaItems.push({ url: project.video, type: "video" })
+                    }
+                    
+                    const updateMedia = (newMedia: { url: string; type: "image" | "video" }[]) => {
+                      setData(cur => ({ 
+                        ...cur, 
+                        projects: cur.projects.map(p => p.id === project.id ? { ...p, media: newMedia } : p) 
+                      }))
+                    }
+
+                    return (
+                      <div className="flex flex-col gap-4">
+                        {mediaItems.map((item, i) => (
+                          <div key={i} className="flex flex-col gap-2 border border-border p-3 rounded-md bg-background">
+                            <div className="flex items-center justify-between">
+                              <select 
+                                className="admin-input-sm bg-muted px-2 py-1 outline-none font-mono text-xs text-muted-foreground border-border"
+                                value={item.type}
+                                onChange={(e) => {
+                                  const newMedia = [...mediaItems];
+                                  newMedia[i].type = e.target.value as "image" | "video";
+                                  updateMedia(newMedia);
+                                }}
+                              >
+                                <option value="image">Image</option>
+                                <option value="video">Video</option>
+                              </select>
+                              <button 
+                                onClick={() => {
+                                  const newMedia = [...mediaItems];
+                                  newMedia.splice(i, 1);
+                                  updateMedia(newMedia);
+                                }}
+                                className="text-muted-foreground hover:text-red-500 text-xs font-mono tracking-widest uppercase"
+                              >✕ Remove</button>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <input 
+                                value={item.url}
+                                onChange={(e) => {
+                                  const newMedia = [...mediaItems];
+                                  newMedia[i].url = e.target.value;
+                                  updateMedia(newMedia);
+                                }}
+                                className="admin-input font-mono text-xs flex-1" placeholder="https://..." 
+                              />
+                              <R2Uploader onUploadSuccess={(url) => {
+                                  const newMedia = [...mediaItems];
+                                  newMedia[i].url = url;
+                                  updateMedia(newMedia);
+                              }} />
+                            </div>
+                          </div>
+                        ))}
+                        <button 
+                          onClick={() => {
+                            updateMedia([...mediaItems, { type: "image", url: "" }])
+                          }}
+                          className="rounded border border-border py-3 text-xs tracking-widest font-mono text-muted-foreground hover:text-accent hover:border-accent transition-colors"
+                        >
+                          + ADD MEDIA
+                        </button>
+                      </div>
+                    )
+                  })()}
                 </div>
                 <div className="flex items-center justify-between border-t border-border pt-4">
                   <label className="flex items-center gap-3">

@@ -57,7 +57,7 @@ export function PortfolioClient() {
   }, [data])
 
   const text = copy[lang]
-  const categories = ["all", ...Array.from(new Set(data.projects.map(p => p.category.en)))]
+  const categories = ["all", ...Array.from(new Set([...data.services.map(s => s.en), ...data.projects.map(p => p.category.en)]))]
   const projects = useMemo(() => data.projects.filter(p => filter === "all" || p.category.en === filter), [data.projects, filter])
   useEffect(() => { setActive(0) }, [filter])
   const project = projects[active] ?? projects[0]
@@ -167,7 +167,24 @@ export function PortfolioClient() {
             <p className="eyebrow mb-3 font-mono text-xs uppercase tracking-widest text-muted-foreground">01 / {text.work}</p>
             <h2 className="display-heading text-4xl md:text-5xl font-serif">Selected Archive</h2>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col md:items-end gap-6">
+            {/* Filter pills */}
+            <div className="flex flex-wrap items-center gap-2">
+              {categories.map(cat => {
+                const serviceObj = data.services.find(s => s.en === cat);
+                const catObj = cat === "all" ? { en: text.all, ar: text.all } : serviceObj || data.projects.find(p => p.category.en === cat)?.category || { en: cat, ar: cat }
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setFilter(cat)}
+                    className={`filter-pill ${filter === cat ? "is-active" : ""}`}
+                  >
+                    {t(catObj, lang)}
+                  </button>
+                )
+              })}
+            </div>
+            
             <div className="flex items-center gap-1">
               <button onClick={() => go(-1)} className="slider-btn group relative grid h-12 w-12 place-items-center overflow-hidden rounded-full border border-border transition-colors hover:border-accent">
                 <span className="relative z-10 transition-transform group-hover:-translate-x-1">←</span>
@@ -191,49 +208,57 @@ export function PortfolioClient() {
                 }
                 const ratioCls = ratioMap[project?.mediaRatio || "16:9"] || "aspect-video"
                 const fitCls = project?.mediaRatio === "cover" ? "object-cover" : "object-contain"
+
+                let mediaItems: { url: string; type: "image" | "video" }[] = []
+                if (project?.media && project.media.length > 0) {
+                  mediaItems = project.media.filter(m => m.url.trim() !== "")
+                } else if (project) {
+                  if (project.image) mediaItems.push({ url: project.image, type: "image" })
+                  if (project.video) mediaItems.push({ url: project.video, type: "video" })
+                }
+
+                if (mediaItems.length === 0) {
+                  return (
+                    <div className={`project-media relative ${ratioCls} bg-muted overflow-hidden`}>
+                      <div className="placeholder-grid" />
+                      <div className="placeholder-label">
+                        <span className="pulse-dot" />
+                        <span>{text.media}</span>
+                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent pointer-events-none z-[1]" />
+                      <div className="scan-line" />
+                      <div className="absolute start-5 top-5 z-10 font-mono text-[11px] tracking-[0.15em] text-accent bg-background/80 px-2 py-1 backdrop-blur-sm">
+                        {project?.index} / {String(projects.length).padStart(2, "0")}
+                      </div>
+                      <div className="absolute bottom-5 end-5 z-10 font-mono text-[11px] tracking-[0.12em] text-muted-foreground bg-background/70 px-2 py-1 backdrop-blur-sm">
+                        {text.signal} · {project?.year}
+                      </div>
+                    </div>
+                  )
+                }
+
                 return (
                   <>
-                    {/* Image Block */}
-                    {(project?.image || !project?.video) && (
-                      <div className={`project-media relative ${ratioCls} bg-muted overflow-hidden`}>
-                        {project?.image ? (
+                    {mediaItems.map((item, idx) => (
+                      <div key={`${project?.id}-media-${idx}`} className={`project-media relative ${ratioCls} bg-muted overflow-hidden`}>
+                        {item.type === "image" ? (
                           <img
-                            key={project.id + '-img'}
-                            src={project.image}
+                            src={item.url}
                             alt={project ? t(project.title, lang) : ""}
                             className={`project-image absolute inset-0 w-full h-full bg-black ${fitCls}`}
                           />
                         ) : (
-                          <>
-                            <div className="placeholder-grid" />
-                            <div className="placeholder-label">
-                              <span className="pulse-dot" />
-                              <span>{text.media}</span>
-                            </div>
-                          </>
+                          <video
+                            src={item.url}
+                            muted autoPlay loop playsInline controls
+                            className={`project-image absolute inset-0 w-full h-full bg-black z-[2] ${fitCls}`}
+                          />
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent pointer-events-none z-[1]" />
-                        <div className="scan-line" />
-                        <div className="absolute start-5 top-5 z-10 font-mono text-[11px] tracking-[0.15em] text-accent bg-background/80 px-2 py-1 backdrop-blur-sm">
-                          {project?.index} / {String(projects.length).padStart(2, "0")}
-                        </div>
-                        <div className="absolute bottom-5 end-5 z-10 font-mono text-[11px] tracking-[0.12em] text-muted-foreground bg-background/70 px-2 py-1 backdrop-blur-sm">
-                          {text.signal} · {project?.year}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Video Block */}
-                    {project?.video && (
-                      <div className={`project-media relative ${ratioCls} bg-muted overflow-hidden`}>
-                        <video
-                          key={project.id + '-vid'}
-                          src={project.video}
-                          muted autoPlay loop playsInline controls
-                          className={`project-image absolute inset-0 w-full h-full bg-black z-[2] ${fitCls}`}
-                        />
-                        {!project?.image && (
+                        
+                        {idx === 0 && (
                           <>
+                            <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent pointer-events-none z-[1]" />
+                            <div className="scan-line" />
                             <div className="absolute start-5 top-5 z-10 font-mono text-[11px] tracking-[0.15em] text-accent bg-background/80 px-2 py-1 backdrop-blur-sm">
                               {project?.index} / {String(projects.length).padStart(2, "0")}
                             </div>
@@ -243,7 +268,7 @@ export function PortfolioClient() {
                           </>
                         )}
                       </div>
-                    )}
+                    ))}
                   </>
                 )
               })()}
@@ -337,13 +362,20 @@ export function PortfolioClient() {
           </div>
           <div className="services-list border-t border-border">
             {data.services.map((service, i) => (
-              <div key={service.en} data-reveal className="scroll-reveal service-row group">
+              <a 
+                key={service.en} 
+                href="#work"
+                onClick={() => setFilter(service.en)}
+                data-reveal 
+                className="scroll-reveal service-row group"
+                style={{ textDecoration: 'none' }}
+              >
                 <div className="flex items-center gap-6">
                   <span className="service-index">0{i + 1}</span>
                   <span className="service-name">{t(service, lang)}</span>
                 </div>
                 <span className="service-arrow">↗</span>
-              </div>
+              </a>
             ))}
           </div>
         </div>
@@ -358,15 +390,33 @@ export function PortfolioClient() {
               <h2 className="display-heading max-w-xl">
                 {isRTL ? "لنصنع شيئاً يتحرك." : "Let's make\nsomething move."}
               </h2>
-              <div className="flex flex-col gap-4">
-                <a
-                  href="mailto:hello@siriuscreative.co"
-                  className="contact-email"
-                >
-                  hello@siriuscreative.co
-                  <span className="contact-email-arrow">↗</span>
-                </a>
-                <p className="font-mono text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
+              <div className="flex flex-col gap-6 md:items-end">
+                <div className="flex flex-wrap items-center gap-6">
+                  <a
+                    href={`mailto:${data.contact?.email || "hello@siriuscreative.co"}`}
+                    className="contact-email"
+                  >
+                    {data.contact?.email || "hello@siriuscreative.co"}
+                    <span className="contact-email-arrow">↗</span>
+                  </a>
+                  
+                  {/* Social Icons */}
+                  {(data.contact?.instagram || data.contact?.facebook) && (
+                    <div className="flex items-center gap-3">
+                      {data.contact?.instagram && (
+                        <a href={data.contact.instagram} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-accent transition-colors flex items-center justify-center w-10 h-10 rounded-full border border-border hover:border-accent" aria-label="Instagram">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                        </a>
+                      )}
+                      {data.contact?.facebook && (
+                        <a href={data.contact.facebook} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-accent transition-colors flex items-center justify-center w-10 h-10 rounded-full border border-border hover:border-accent" aria-label="Facebook">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <p className="font-mono text-[11px] tracking-[0.18em] uppercase text-muted-foreground mt-2 md:mt-0">
                   {text.location}
                 </p>
               </div>
@@ -422,40 +472,41 @@ export function PortfolioClient() {
             </div>
 
             {/* ── MEDIA ── */}
-            {(project.image || project.video) && (
-              <div className="mb-10 flex flex-col gap-4">
-                {project.image && (
-                  <div className="w-full overflow-hidden border border-border bg-black">
-                    <img
-                      src={project.image}
-                      alt={t(project.title, lang)}
-                      className={`w-full h-auto ${project.mediaRatio === "cover" ? "object-cover" : "object-contain"}`}
-                      style={{
-                        maxHeight: "80vh",
-                        display: "block",
-                      }}
-                    />
-                  </div>
-                )}
-                {project.video && (
-                  <div className="w-full overflow-hidden border border-border bg-black">
-                    <video
-                      src={project.video}
-                      controls
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className={`w-full h-auto ${project.mediaRatio === "cover" ? "object-cover" : "object-contain"}`}
-                      style={{
-                        maxHeight: "80vh",
-                        display: "block",
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
+            {(() => {
+              let mediaItems: { url: string; type: "image" | "video" }[] = []
+              if (project.media && project.media.length > 0) {
+                mediaItems = project.media.filter(m => m.url.trim() !== "")
+              } else {
+                if (project.image) mediaItems.push({ url: project.image, type: "image" })
+                if (project.video) mediaItems.push({ url: project.video, type: "video" })
+              }
+
+              if (mediaItems.length === 0) return null
+
+              return (
+                <div className="mb-10 flex flex-col gap-4">
+                  {mediaItems.map((item, idx) => (
+                    <div key={idx} className="w-full overflow-hidden border border-border bg-black">
+                      {item.type === "image" ? (
+                        <img
+                          src={item.url}
+                          alt={t(project.title, lang)}
+                          className={`w-full h-auto ${project.mediaRatio === "cover" ? "object-cover" : "object-contain"}`}
+                          style={{ maxHeight: "80vh", display: "block" }}
+                        />
+                      ) : (
+                        <video
+                          src={item.url}
+                          controls autoPlay loop muted playsInline
+                          className={`w-full h-auto ${project.mediaRatio === "cover" ? "object-cover" : "object-contain"}`}
+                          style={{ maxHeight: "80vh", display: "block" }}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
 
             {/* ── OVERVIEW + FULL DESCRIPTION ── */}
             <div className="grid gap-12 md:grid-cols-[1fr_2fr]">

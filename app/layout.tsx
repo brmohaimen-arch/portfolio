@@ -10,4 +10,4 @@ const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfa
 
 export const metadata: Metadata = { title: 'Sirius Creative Collective', description: 'Independent creative systems from Tripoli, Libya.', generator: 'v0.app' }
 export const viewport: Viewport = { colorScheme: 'dark', themeColor: '#08090b', userScalable: true }
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="en" className="bg-background"><body className={`${geist.variable} ${geistMono.variable} ${arabic.variable} ${playfair.variable} font-sans antialiased`}>{children}{process.env.NODE_ENV === 'production' && <Analytics />}</body></html> }
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="en" className="bg-background" suppressHydrationWarning><body className={`${geist.variable} ${geistMono.variable} ${arabic.variable} ${playfair.variable} font-sans antialiased`}>{children}{process.env.NODE_ENV === 'production' && <Analytics />}</body></html> }
