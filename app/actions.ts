@@ -45,13 +45,13 @@ export async function savePortfolioData(data: unknown) {
       Key: "portfolio-data.json",
       Body: json,
       ContentType: "application/json",
-      // Allow public read so the portfolio page can fetch it
-      ACL: "public-read" as const,
+      // No ACL — R2 public access is set at the bucket level via the public URL
+      CacheControl: "no-cache, no-store, must-revalidate",
     });
     await s3Client.send(command);
     return { success: true };
   } catch (error) {
     console.error("Error saving portfolio data to R2:", error);
-    return { success: false, error: "Failed to save data" };
+    return { success: false, error: String(error) };
   }
 }
